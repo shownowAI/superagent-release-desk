@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ArrowDown, ArrowRight, ArrowUp, Check, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, Circle, CircleDashed, Command, ListTodo, PanelLeft, Search, Timer, X } from 'lucide-react';
+import { ArrowDown, ArrowRight, ArrowUp, Check, CheckCircle, ChevronDown, ChevronLeft, ChevronRight, Circle, CircleDashed, ClipboardList, Command, ListTodo, PanelLeft, Search, Timer, X } from 'lucide-react';
 import { Avatar, AvatarFallback } from './components/ui/avatar';
 import { Badge } from './components/ui/badge';
 import { Button } from './components/ui/button';
@@ -8,6 +8,7 @@ import { Checkbox } from './components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './components/ui/table';
 import { initialTasks } from './seed-data.mjs';
 import { filterTasks, updateTaskStatus } from './task-filter.mjs';
+import { generateReleaseChecklist } from './release-checklist.mjs';
 import './styles.css';
 
 const statuses = [
@@ -30,7 +31,9 @@ function App() {
   const [onlyPending, setOnlyPending] = useState(false);
   const [selected, setSelected] = useState([]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showChecklist, setShowChecklist] = useState(false);
   const visible = filterTasks(tasks, { search, status, priority, onlyPending });
+  const checklist = showChecklist ? generateReleaseChecklist(tasks) : null;
   const done = tasks.filter(task => task.status === 'done').length;
   const hasFilters = search || status !== 'all' || priority !== 'all' || onlyPending;
   const reset = () => { setSearch(''); setStatus('all'); setPriority('all'); setOnlyPending(false); };
@@ -61,8 +64,15 @@ function App() {
             <Button size='sm' variant={onlyPending ? 'default' : 'outline'} aria-pressed={onlyPending} onClick={() => setOnlyPending(value => !value)}><CircleDashed size={15} />只看待处理{onlyPending && <Check size={14} />}</Button>
             <label className='toolbar-select'><span>状态</span><select aria-label='按状态筛选' value={status} onChange={e => setStatus(e.target.value)}><option value='all'>全部状态</option>{statuses.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select><ChevronDown size={13} /></label>
             <label className='toolbar-select'><span>优先级</span><select aria-label='按优先级筛选' value={priority} onChange={e => setPriority(e.target.value)}><option value='all'>全部优先级</option>{priorities.map(item => <option key={item.value} value={item.value}>{item.label}</option>)}</select><ChevronDown size={13} /></label>
+            <Button size='sm' variant='outline' aria-expanded={showChecklist} onClick={() => setShowChecklist(true)}><ClipboardList size={15} />生成发布清单</Button>
             {hasFilters && <Button size='sm' variant='ghost' onClick={reset}>重置<X size={13} /></Button>}
           </div>
+          {checklist !== null && (
+            <section className='release-checklist' aria-label='发布清单'>
+              <div className='release-checklist-head'><ClipboardList size={15} />发布清单<span className='release-checklist-hint'>仅在本页显示，点击文本可全选复制</span><Button size='sm' variant='ghost' aria-label='关闭发布清单' onClick={() => setShowChecklist(false)}><X size={14} /></Button></div>
+              <textarea className='release-checklist-body' aria-label='发布清单内容' readOnly rows={checklist.split('\n').length} value={checklist} onFocus={e => e.target.select()} onClick={e => e.target.select()} />
+            </section>
+          )}
           <div className='task-table-frame'>
             <Table className='task-table' aria-label='产品发布任务'>
               <TableHeader><TableRow><TableHead className='selection-cell'><Checkbox aria-label='选择当前显示的全部任务' checked={visible.length > 0 && visible.every(task => selected.includes(task.id))} onCheckedChange={checked => setSelected(current => checked ? [...new Set([...current, ...visible.map(task => task.id)])] : current.filter(id => !visible.some(task => task.id === id)))} /></TableHead><TableHead>任务编号</TableHead><TableHead className='task-title-head'>事项</TableHead><TableHead>状态</TableHead><TableHead>负责人</TableHead><TableHead>截止</TableHead><TableHead>优先级</TableHead></TableRow></TableHeader>
